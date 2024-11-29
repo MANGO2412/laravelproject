@@ -87,7 +87,7 @@ jobs:
       - name: Install and build assets
         run: |
           npm install
-          npm run prod
+          npm run build
 
       # 7. Ajustar permisos de carpetas necesarias
       - name: Set permissions for storage and cache
