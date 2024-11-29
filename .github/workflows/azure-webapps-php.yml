@@ -17,85 +17,63 @@
 # For more information on the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # For more samples to get started with GitHub Action workflows to deploy to Azure: https://github.com/Azure/actions-workflow-samples
 
-name: Build and deploy PHP app to Azure Web App
+
+name:  Build and deploy PHP app to Azure Web App
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
-
-env:
-  AZURE_WEBAPP_NAME: laravelproject   # set this to your application's name
-  AZURE_WEBAPP_PACKAGE_PATH: '.'      # set this to the path to your web app project, defaults to the repository root
-  PHP_VERSION: '8.x'                  # set this to the PHP version to use
-
-permissions:
-  contents: read
+    branches:
+      - main # Cambia "main" si tu rama principal tiene otro nombre
 
 jobs:
-  
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # 1. Configura el repositorio
+      - name: Checkout code
+        uses: actions/checkout@v3
 
+      # 2. Configura PHP y Composer
       - name: Setup PHP
-        uses: shivammathur/setup-php@7c0b4c8c8ebed23eca9ec2802474895d105b11bc
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ env.PHP_VERSION }}
+          php-version: 8.1 # Cambia según tu versión de PHP
+          extensions: mbstring, tokenizer, xml, ctype, json, bcmath, curl
+          tools: composer
 
-      - name: Check if composer.json exists
-        id: check_files
-        uses: andstor/file-existence-action@87d74d4732ddb824259d80c8a508c0124bf1c673
+      # 3. Instala las dependencias de Composer
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader
+
+      # 4. Configura Node.js y compila assets
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          files: 'composer.json'
+          node-version: '18' # Cambia según tu versión de Node.js
 
-      - name: Get Composer Cache Directory
-        id: composer-cache
-        if: steps.check_files.outputs.files_exists == 'true'
+      - name: Install and build assets
         run: |
-          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+          npm install
+          npm run prod
 
-      - name: Set up dependency caching for faster installs
-        uses: actions/cache@v3
-        if: steps.check_files.outputs.files_exists == 'true'
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
+      # 5. Configura permisos de las carpetas necesarias
+      - name: Set permissions for storage and cache
+        run: |
+          chmod -R 775 storage bootstrap/cache
+          chown -R www-data:www-data storage bootstrap/cache
 
-      - name: Run composer install if composer.json exists
-        if: steps.check_files.outputs.files_exists == 'true'
-        run: composer validate --no-check-publish && composer install --prefer-dist --no-progress
-
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v3
-        with:
-          name: php-app
-          path: .
-
-  deploy:
-    permissions:
-      contents: none
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: 'Development'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v3
-        with:
-          name: php-app
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
+      # 6. Publica el proyecto en Azure
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'laravelproject'
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F60066773D9943A8979130CA86BC6FCE }}
-          package: .
+          app-name: "TU_APP_SERVICE_NAME" # Nombre de tu App Service en Azure
+          slot-name: "production"
+          publish-profile:  ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F60066773D9943A8979130CA86BC6FCE }}
+
+      # 7. Ejecuta migraciones de la base de datos (opcional)
+      - name: Run database migrations
+        run: php artisan migrate --force
+
+
 
