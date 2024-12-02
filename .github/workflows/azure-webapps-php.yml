@@ -18,7 +18,7 @@
 # For more samples to get started with GitHub Action workflows to deploy to Azure: https://github.com/Azure/actions-workflow-samples
 
 
-name: Build and deploy Laravel app to Azure Web App
+name: Build and deploy PHP app to Azure Web App
 
 on:
   push:
@@ -26,9 +26,9 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: laravelproject   # Nombre de tu aplicación en Azure
-  AZURE_WEBAPP_PACKAGE_PATH: '.'      # Ruta del proyecto, por defecto el root del repositorio
-  PHP_VERSION: '8.2'                  # Versión de PHP a utilizar
+  AZURE_WEBAPP_NAME: laravelproject   # set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: '.'      # set this to the path to your web app project, defaults to the repository root
+  PHP_VERSION: '8.x'                  # set this to the PHP version to use
 
 permissions:
   contents: read
@@ -39,25 +39,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout del repositorio
       - uses: actions/checkout@v4
 
-      # 2. Configurar PHP
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@7c0b4c8c8ebed23eca9ec2802474895d105b11bc
         with:
           php-version: ${{ env.PHP_VERSION }}
-          extensions: mbstring, tokenizer, xml, ctype, json, bcmath, curl
-          tools: composer
 
-      # 3. Verificar existencia de composer.json
       - name: Check if composer.json exists
         id: check_files
-        uses: andstor/file-existence-action@v1
+        uses: andstor/file-existence-action@87d74d4732ddb824259d80c8a508c0124bf1c673
         with:
           files: 'composer.json'
 
-      # 4. Configurar caché de Composer
       - name: Get Composer Cache Directory
         id: composer-cache
         if: steps.check_files.outputs.files_exists == 'true'
@@ -73,31 +67,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-composer-
 
-      # 5. Instalar dependencias con Composer
       - name: Run composer install if composer.json exists
         if: steps.check_files.outputs.files_exists == 'true'
-        run: composer install --prefer-dist --no-progress --optimize-autoloader
+        run: composer validate --no-check-publish && composer install --prefer-dist --no-progress
 
-      # 6. Configurar Node.js y compilar assets de Laravel
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20' # Cambiar si se usa otra versión de Node.js
-
-      - name: Install and build assets
-        run: |
-          npm install
-          npm run build
-
-
-      # 8. Subir artefactos para el job de despliegue
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
         with:
-          name: laravel-app
+          name: php-app
           path: .
 
- deploy:
+  deploy:
     permissions:
       contents: none
     runs-on: ubuntu-latest
