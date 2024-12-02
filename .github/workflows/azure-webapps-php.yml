@@ -89,11 +89,6 @@ jobs:
           npm install
           npm run build
 
-      # 7. Ajustar permisos de carpetas necesarias
-      - name: Set permissions for storage and cache
-        run: |
-          chmod -R 775 storage bootstrap/cache
-          chown -R www-data:www-data storage bootstrap/cache
 
       # 8. Subir artefactos para el job de despliegue
       - name: Upload artifact for deployment job
