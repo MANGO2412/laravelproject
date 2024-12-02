@@ -107,22 +107,15 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
-      # 1. Descargar artefactos del job de build
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:
-          name: laravel-app
-
-      # 2. Desplegar a Azure Web App
-      - name: Deploy to Azure Web App
+          name: php-app
+      - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          app-name: 'laravelproject'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F60066773D9943A8979130CA86BC6FCE }}
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-
-      # 3. Ejecutar migraciones de Laravel (opcional)
-      - name: Run database migrations
-        run: ~/.phpenv/versions/8.2/bin/php artisan migrate --force
+          package: .
