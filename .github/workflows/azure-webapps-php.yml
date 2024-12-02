@@ -125,4 +125,4 @@ jobs:
 
       # 3. Ejecutar migraciones de Laravel (opcional)
       - name: Run database migrations
-        run: php artisan migrate --force
+        run: ~/.phpenv/versions/8.2/bin/php artisan migrate --force
